@@ -4,13 +4,18 @@ use std::{fmt, fs};
 
 #[derive(Parser, Debug, Clone)]
 pub struct LsArgs {
+    #[arg(short = 'a', help = "do not ignore entries starting with .")]
+    all: bool,
+
+    #[arg(short = 'A', help = "do not list implied . and ..")]
+    almost_all: bool,
+
     #[arg(value_name = "FILE", num_args = 1.., default_value = ".")]
     value: String,
 }
 
 impl LsArgs {
     pub fn exec(self) -> Result<LsOutput, Box<dyn std::error::Error>> {
-        let args = self.clone();
         let mut paths: Vec<_> = fs::read_dir(self.value)?
             .map(|entry| entry.expect("Failed to read DirEntry"))
             .collect();
@@ -22,9 +27,13 @@ impl LsArgs {
                 .cmp(&b.file_name().into_string().unwrap())
         });
 
-        let output = paths
+        let mut output = paths
             .iter()
-            .filter(|entry| !entry.file_name().into_string().unwrap().starts_with("."))
+            .filter(|entry| {
+                self.all
+                    || self.almost_all
+                    || !entry.file_name().into_string().unwrap().starts_with(".")
+            })
             .map(|entry| {
                 let path = entry.file_name().into_string().unwrap();
 
@@ -40,6 +49,15 @@ impl LsArgs {
                 }
             })
             .collect();
+
+        let output = if self.all {
+            let mut new_output = vec![".".blue(), "..".blue()];
+            new_output.append(&mut output);
+
+            new_output
+        } else {
+            output
+        };
 
         Ok(LsOutput { entries: output })
     }
