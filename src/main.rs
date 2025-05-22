@@ -1,5 +1,10 @@
+use clap::Parser;
+use ls::LsArgs;
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("Hello, world!");
+    let args = LsArgs::parse();
+
+    println!("{}", args.exec()?);
 
     Ok(())
 }
